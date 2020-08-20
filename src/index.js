@@ -104,4 +104,24 @@ const tokenReference = `/${myIdentity.account.getAddress()}/${symbol}`
 console.log('Token reference' + tokenReference)
 
 
+console.log('SEND TOKENS')
+// sending some tokens
+const toAccount = RadixAccount.fromAddress('JEaSfBftmFdseSRKfTm6hJNhQi3FAEqmVzAPTxsf55wPqXvBxRB', true)
+const token = tokenReference // The default platform token
+const amountToSend = 123.12
+
+const transactionStatus = RadixTransactionBuilder
+  .createTransferAtom(myAccount, toAccount, token, amountToSend)
+  .signAndSubmit(myIdentity)
+
+transactionStatus.subscribe({
+  next: status => {
+    console.log(status)
+    // For a valid transaction, this will print, 'FINDING_NODE', 'GENERATING_POW', 'SIGNING', 'STORE', 'STORED'
+  },
+  complete: () => { console.log('Transaction complete') },
+  error: error => { console.error('Error submitting transaction', error) }
+})
+
+
 
