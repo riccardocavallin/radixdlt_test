@@ -45,83 +45,93 @@ myAccount.transferSystem.getTokenUnitsBalanceUpdates().subscribe(balance => {
 
 document.getElementById('address').innerHTML = 'My address: ' + myAccount.getAddress();
 
-const symbol = 'EXMP'
-const name = 'Example Coin'
-const description = 'My example coin'
-const granularity = 1
-const amount = 100
-const iconUrl = 'http://a.b.com/icon.png'
+createToken()
 
-// creazione del token e ricerca in caso di creazione con successo
-new RadixTransactionBuilder().createTokenMultiIssuance(
-  myIdentity.account,
-  name,
-  symbol,
-  description,
-  granularity,
-  amount,
-  iconUrl,
-).signAndSubmit(myIdentity)
-  .subscribe({
-    next: status => { console.log(status) },
-    complete: async () => {
+function createToken() {
+  const symbol = 'EXMP'
+  const name = 'Example Coin'
+  const description = 'My example coin'
+  const granularity = 1
+  const amount = 1000
+  const iconUrl = 'http://a.b.com/icon.png'
 
-      console.log('Token defintion has been created')
+  // creazione del token e ricerca in caso di creazione con successo
+  new RadixTransactionBuilder().createTokenMultiIssuance(
+    myIdentity.account,
+    name,
+    symbol,
+    description,
+    granularity,
+    amount,
+    iconUrl,
+  ).signAndSubmit(myIdentity)
+    .subscribe({
+      next: status => { console.log(status) },
+      complete: async () => {
+        console.log('Token defintion has been created')
+        const tokenReference = `/${myIdentity.account.getAddress()}/${symbol}`
+        console.log('Token reference: ' + tokenReference)
+        lookupToken(tokenReference)
+        mintTokens(tokenReference, 5)
+      },
+      error: error => { console.error('Error submitting transaction', error) }
+    })
+}
 
-      // ricerca del token 
-      radixTokenManager.getTokenDefinition(tokenReference).then(tokenDefinition => {
-        document.getElementById('tokenAmount').innerHTML = 'Total supply of EXMP: ' + tokenDefinition.totalSupply
-      }).catch(error => {
-        // Token wasn't found for some reason
-        console.error('Token not found')
-      })
+function lookupToken(tokenReference) {
+  // ricerca del token 
+  radixTokenManager.getTokenDefinition(tokenReference).then(tokenDefinition => {
+    document.getElementById('tokenAmount').innerHTML = 'Total supply of EXMP: ' + tokenDefinition.totalSupply
+  }).catch(error => {
+    // Token wasn't found for some reason
+    console.error('Token not found')
+  })
+}
 
-      // minting some tokens
-      const amountToMint = 5
-      RadixTransactionBuilder.createMintAtom(myIdentity.account, tokenReference, amountToMint)
-        .signAndSubmit(myIdentity)
-        .subscribe({
-          next: status => { console.log(status) },
-          complete: () => { console.log('Tokens have been minted') },
-          error: error => { console.error('Error submitting transaction', error) }
-        })
+function mintTokens(tokenReference, amountToMint) {
+  // minting some tokens
+  RadixTransactionBuilder.createMintAtom(myIdentity.account, tokenReference, amountToMint)
+    .signAndSubmit(myIdentity)
+    .subscribe({
+      next: status => { console.log(status) },
+      complete: () => {
+        console.log('Tokens have been minted')
+        burnTokens(tokenReference, 10)
+      },
+      error: error => { console.error('Error submitting transaction', error) }
+    })
+}
 
-      // burning some tokens
-      const amountToBurn = 10
-      RadixTransactionBuilder.createBurnAtom(myIdentity.account, tokenReference, amountToBurn)
-        .signAndSubmit(myIdentity)
-        .subscribe({
-          next: status => { console.log(status) },
-          complete: () => { console.log('Tokens have been burned') },
-          error: error => { console.error('Error submitting transaction', error) }
-        })
+function burnTokens(tokenReference, amountToBurn) {
+  // burning some tokens
+  RadixTransactionBuilder.createBurnAtom(myIdentity.account, tokenReference, amountToBurn)
+    .signAndSubmit(myIdentity)
+    .subscribe({
+      next: status => { console.log(status) },
+      complete: () => {
+        console.log('Tokens have been burned')
+        sendTokens(tokenReference)
+      },
+      error: error => { console.error('Error submitting transaction', error) }
+    })
+}
 
+function sendTokens(tokenReference) {
+  // sending some tokens
+  const toAccount = RadixAccount.fromAddress('JEaSfBftmFdseSRKfTm6hJNhQi3FAEqmVzAPTxsf55wPqXvBxRB', true)
+  const token = tokenReference // My token
+  const amountToSend = 123
+
+  const transactionStatus = RadixTransactionBuilder
+    .createTransferAtom(myAccount, toAccount, token, amountToSend)
+    .signAndSubmit(myIdentity)
+
+  transactionStatus.subscribe({
+    next: status => {
+      console.log(status)
+      // For a valid transaction, this will print, 'FINDING_NODE', 'GENERATING_POW', 'SIGNING', 'STORE', 'STORED'
     },
+    complete: () => { console.log('Transaction completed') },
     error: error => { console.error('Error submitting transaction', error) }
   })
-
-const tokenReference = `/${myIdentity.account.getAddress()}/${symbol}`
-console.log('Token reference' + tokenReference)
-
-
-console.log('SEND TOKENS')
-// sending some tokens
-const toAccount = RadixAccount.fromAddress('JEaSfBftmFdseSRKfTm6hJNhQi3FAEqmVzAPTxsf55wPqXvBxRB', true)
-const token = tokenReference // The default platform token
-const amountToSend = 123.12
-
-const transactionStatus = RadixTransactionBuilder
-  .createTransferAtom(myAccount, toAccount, token, amountToSend)
-  .signAndSubmit(myIdentity)
-
-transactionStatus.subscribe({
-  next: status => {
-    console.log(status)
-    // For a valid transaction, this will print, 'FINDING_NODE', 'GENERATING_POW', 'SIGNING', 'STORE', 'STORED'
-  },
-  complete: () => { console.log('Transaction complete') },
-  error: error => { console.error('Error submitting transaction', error) }
-})
-
-
-
+}
