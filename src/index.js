@@ -71,6 +71,7 @@ function createToken() {
         console.log('Token defintion has been created')
         const tokenReference = `/${myIdentity.account.getAddress()}/${symbol}`
         console.log('Token reference: ' + tokenReference)
+        printBalance(tokenReference)
         lookupToken(tokenReference)
         mintTokens(tokenReference, 5)
       },
@@ -81,7 +82,7 @@ function createToken() {
 function lookupToken(tokenReference) {
   // ricerca del token 
   radixTokenManager.getTokenDefinition(tokenReference).then(tokenDefinition => {
-    document.getElementById('tokenAmount').innerHTML = 'Total supply of EXMP: ' + tokenDefinition.totalSupply
+    console.log("Total supply of EXMP   " + tokenDefinition.totalSupply)
   }).catch(error => {
     // Token wasn't found for some reason
     console.error('Token not found')
@@ -133,5 +134,13 @@ function sendTokens(tokenReference) {
     },
     complete: () => { console.log('Transaction completed') },
     error: error => { console.error('Error submitting transaction', error) }
+  })
+}
+
+function printBalance(tokenReference) {
+  myAccount.transferSystem.getTokenUnitsBalanceUpdates().subscribe(balance => {
+    // Get the balance for the token we are interested in
+    const balanceEXMP = balance[tokenReference.toString()]
+    document.getElementById('tokenAmount').innerHTML = 'Balance: ' + balanceEXMP
   })
 }
